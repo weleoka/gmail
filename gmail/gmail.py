@@ -1,9 +1,9 @@
 import re
 import imaplib
 
-from mailbox import Mailbox
-from utf import encode as encode_utf7, decode as decode_utf7
-from exceptions import *
+from .mailbox import Mailbox
+from .utf import encode as encode_utf7, decode as decode_utf7
+from .exceptions import *
 
 class Gmail():
     # GMail IMAP defaults
@@ -15,12 +15,12 @@ class Gmail():
     GMAIL_SMTP_HOST = "smtp.gmail.com"
     GMAIL_SMTP_PORT = 587
 
-    def __init__(self):
+    def __init__(self, imap = None):
         self.username = None
         self.password = None
         self.access_token = None
 
-        self.imap = None
+        self.imap = imap
         self.smtp = None
         self.logged_in = False
         self.mailboxes = {}
@@ -53,7 +53,8 @@ class Gmail():
         response, mailbox_list = self.imap.list()
         if response == 'OK':
             for mailbox in mailbox_list:
-                mailbox_name = mailbox.split('"/"')[-1].replace('"', '').strip()
+                mailbox_decoded = decode_utf7(mailbox)
+                mailbox_name = mailbox_decoded.split('"/"')[-1].replace('"', '').strip()
                 mailbox = Mailbox(self)
                 mailbox.external_name = mailbox_name
                 self.mailboxes[mailbox_name] = mailbox
@@ -147,9 +148,9 @@ class Gmail():
         self.imap.uid('COPY', uid, to_mailbox)
 
     def fetch_multiple_messages(self, messages):
-        fetch_str =  ','.join(messages.keys())
+        fetch_str =  ','.join(list(messages.keys()))
         response, results = self.imap.uid('FETCH', fetch_str, '(BODY.PEEK[] FLAGS X-GM-THRID X-GM-MSGID X-GM-LABELS)')
-        for index in xrange(len(results) - 1):
+        for index in range(len(results) - 1):
             raw_message = results[index]
             if re.search(r'UID (\d+)', raw_message[0]):
                 uid = re.search(r'UID (\d+)', raw_message[0]).groups(1)[0]
@@ -159,7 +160,7 @@ class Gmail():
 
 
     def labels(self, require_unicode=False):
-        keys = self.mailboxes.keys()
+        keys = list(self.mailboxes.keys())
         if require_unicode:
             keys = [decode_utf7(key) for key in keys]
         return keys
