@@ -152,8 +152,8 @@ class Gmail():
         response, results = self.imap.uid('FETCH', fetch_str, '(BODY.PEEK[] FLAGS X-GM-THRID X-GM-MSGID X-GM-LABELS)')
         for index in range(len(results) - 1):
             raw_message = results[index]
-            if re.search(r'UID (\d+)', raw_message[0]):
-                uid = re.search(r'UID (\d+)', raw_message[0]).groups(1)[0]
+            if re.search(r'UID (\d+)', str(raw_message[0])):
+                uid = re.search(r'UID (\d+)', str(raw_message[0])).groups(1)[0]#.decode(encoding='UTF-8',errors='strict')
                 messages[uid].parse(raw_message)
 
         return messages

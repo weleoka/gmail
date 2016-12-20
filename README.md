@@ -120,10 +120,10 @@ Add a label to a message:
 
 Download message attachments:
 
-    for attachment in email.attachments:
-        print 'Saving attachment: ' + attachment.name
-        print 'Size: ' + str(attachment.size) + ' KB'
-        attachment.save('attachments/' + attachment.name)
+    for attachment in mail.attachments:
+        print('Saving attachment: %s' % (attachment.name))
+        print('Size: %s KB' % (attachment.size))
+        attachment.save('attachments/%s' % (attachment.name))
     
 There is also few shortcuts to mark messages quickly:
 

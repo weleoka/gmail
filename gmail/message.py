@@ -5,6 +5,7 @@ import time
 import os
 from email.header import decode_header, make_header
 from imaplib import ParseFlags
+from .utf import encode as encode_utf7, decode as decode_utf7
 
 class Message():
 
@@ -124,20 +125,22 @@ class Message():
     def parse_labels(self, headers):
         if re.search(r'X-GM-LABELS \(([^\)]+)\)', headers):
             labels = re.search(r'X-GM-LABELS \(([^\)]+)\)', headers).groups(1)[0].split(' ')
-            return [l.replace('"', '').decode("string_escape") for l in labels]
+            return [l.replace('"', '') for l in labels]
         else:
             return list()
 
     def parse_subject(self, encoded_subject):
         dh = decode_header(encoded_subject)
         default_charset = 'ASCII'
-        return ''.join([ str(t[0], t[1] or default_charset) for t in dh ])
+        return ''.join([t[0] + t[1] if t[1] else t[0] + default_charset for t in dh ])
 
     def parse(self, raw_message):
         raw_headers = raw_message[0]
         raw_email = raw_message[1]
+        decoded_headers = raw_message[0].decode(encoding='UTF-8',errors='strict')
+        decoded_email = raw_message[1].decode(encoding='UTF-8',errors='strict')
 
-        self.message = email.message_from_string(raw_email)
+        self.message = email.message_from_string(decoded_email)
         self.headers = self.parse_headers(self.message)
 
         self.to = self.message['to']
@@ -159,12 +162,12 @@ class Message():
 
         self.flags = self.parse_flags(raw_headers)
 
-        self.labels = self.parse_labels(raw_headers)
+        self.labels = self.parse_labels(decoded_headers)
 
-        if re.search(r'X-GM-THRID (\d+)', raw_headers):
-            self.thread_id = re.search(r'X-GM-THRID (\d+)', raw_headers).groups(1)[0]
-        if re.search(r'X-GM-MSGID (\d+)', raw_headers):
-            self.message_id = re.search(r'X-GM-MSGID (\d+)', raw_headers).groups(1)[0]
+        if re.search(r'X-GM-THRID (\d+)', decoded_headers):
+            self.thread_id = re.search(r'X-GM-THRID (\d+)', decoded_headers).groups(1)[0]
+        if re.search(r'X-GM-MSGID (\d+)', decoded_headers):
+            self.message_id = re.search(r'X-GM-MSGID (\d+)', decoded_headers).groups(1)[0]
 
         
         # Parse attachments into attachment objects array for this message
