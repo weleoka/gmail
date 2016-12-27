@@ -54,7 +54,7 @@ class Gmail():
         if response == 'OK':
             for mailbox in mailbox_list:
                 mailbox_decoded = decode_utf7(mailbox)
-                mailbox_name = mailbox_decoded.split('"/"')[-1].replace('"', '').strip()
+                mailbox_name = mailbox_decoded.split('"/"')[-1].strip() #.replace('"', '') # Keep the quotemarks!
                 mailbox = Mailbox(self)
                 mailbox.external_name = mailbox_name
                 self.mailboxes[mailbox_name] = mailbox
@@ -137,7 +137,7 @@ class Gmail():
     def label(self, label_name):
         return self.mailbox(label_name)
 
-    def find(self, mailbox_name="[Gmail]/All Mail", **kwargs):
+    def find(self, mailbox_name='"[Gmail]/All Mail"', **kwargs):
         box = self.mailbox(mailbox_name)
         return box.mail(**kwargs)
 
@@ -166,22 +166,22 @@ class Gmail():
         return keys
 
     def inbox(self):
-        return self.mailbox("INBOX")
+        return self.mailbox('"INBOX"')
 
     def spam(self):
-        return self.mailbox("[Gmail]/Spam")
+        return self.mailbox('"[Gmail]/Spam"')
 
     def starred(self):
-        return self.mailbox("[Gmail]/Starred")
+        return self.mailbox('"[Gmail]/Starred"')
 
     def all_mail(self):
-        return self.mailbox("[Gmail]/All Mail")
+        return self.mailbox('"[Gmail]/All Mail"')
 
     def sent_mail(self):
-        return self.mailbox("[Gmail]/Sent Mail")
+        return self.mailbox('"[Gmail]/Sent Mail"')
 
     def important(self):
-        return self.mailbox("[Gmail]/Important")
+        return self.mailbox('"[Gmail]/Important"')
 
     def mail_domain(self):
         return self.username.split('@')[-1]
