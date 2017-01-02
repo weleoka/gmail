@@ -147,7 +147,7 @@ class Gmail():
             self.use_mailbox(from_mailbox)
         self.imap.uid('COPY', uid, to_mailbox)
 
-    def fetch_multiple_messages(self, messages):
+    def fetch_multiple_messages(self, messages, mark_as_read):
         fetch_str =  ','.join(list(messages.keys()))
         response, results = self.imap.uid('FETCH', fetch_str, '(BODY.PEEK[] FLAGS X-GM-THRID X-GM-MSGID X-GM-LABELS)')
         for index in range(len(results) - 1):
@@ -155,6 +155,9 @@ class Gmail():
             if re.search(r'UID (\d+)', str(raw_message[0])):
                 uid = re.search(r'UID (\d+)', str(raw_message[0])).groups(1)[0]#.decode(encoding='UTF-8',errors='strict')
                 messages[uid].parse(raw_message)
+
+                if mark_as_read:
+                    messages[uid].read() # Mark them as read.
 
         return messages
 

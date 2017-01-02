@@ -22,7 +22,7 @@ class Mailbox():
             del vars(self)["external_name"]
         self.name = value
 
-    def mail(self, prefetch=False, **kwargs):
+    def mail(self, prefetch=False, mark_as_read=False, **kwargs):
         search = ['ALL']
 
         kwargs.get('read')   and search.append('SEEN')
@@ -71,7 +71,7 @@ class Mailbox():
                 messages_dict = {}
                 for email in emails:
                     messages_dict[email.uid] = email
-                self.messages.update(self.gmail.fetch_multiple_messages(messages_dict))
+                self.messages.update(self.gmail.fetch_multiple_messages(messages_dict, mark_as_read))
 
         return emails
 
