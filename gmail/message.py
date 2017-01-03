@@ -131,7 +131,7 @@ class Message():
 
     def parse_subject(self, encoded_subject):
         dh = decode_header(encoded_subject)
-        default_charset = 'ASCII'
+        default_charset = ''
         return ''.join([t[0] + t[1] if t[1] else t[0] + default_charset for t in dh ])
 
     def parse(self, raw_message):
@@ -154,14 +154,14 @@ class Message():
                 if content.get_content_type() == "text/plain":
                     # Unfortunately get_payload with decode=True still returns bystestring.
                     self.body = content.get_payload(decode=True)
-                    if isinstance(self.body, str):
-                        print("Not a full mail error. error. %s" %(self.body))
-                    elif isinstance(self.body, bytes):
-                        self.body = self.body.decode(encoding='UTF-8',errors='strict')
+                    self.body = self.body.decode(encoding='UTF-8',errors='strict')
                 elif content.get_content_type() == "text/html":
                     self.html = content.get_payload(decode=True).decode(encoding='UTF-8',errors='strict')
         elif self.message.get_content_maintype() == "text":
-            self.body = self.message.get_payload().decode(encoding='UTF-8',errors='strict')
+            if isinstance(self.body, str):
+                self.body = self.message.get_payload()
+            elif isinstance(self.body, bytes):
+                self.body = self.message.get_payload().decode(encoding='UTF-8',errors='strict')
         
         self.sent_at = self.message['date']
         # self.sent_at = datetime.datetime.fromtimestamp(time.mktime(email.utils.parsedate_tz(self.message['date'])[:9]))
