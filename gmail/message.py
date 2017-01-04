@@ -137,8 +137,10 @@ class Message():
     def parse(self, raw_message):
         raw_headers = raw_message[0]
         raw_email = raw_message[1]
-        decoded_headers = raw_message[0].decode(encoding='UTF-8',errors='strict')
-        decoded_email = raw_message[1].decode(encoding='UTF-8',errors='strict')
+
+        # This makes it a byte string from a bytearray.
+        decoded_headers = decode_utf7(raw_headers)#.decode(encoding='UTF-8',errors='strict')
+        decoded_email = decode_utf7(raw_email)#decode(encoding='UTF-8',errors='strict')
 
         self.message = email.message_from_string(decoded_email)
         self.headers = self.parse_headers(self.message)
@@ -148,20 +150,27 @@ class Message():
         self.delivered_to = self.message['delivered_to']
 
         self.subject = self.parse_subject(self.message['subject'])
+        
+
+
+        print(self.message.as_string())
 
         if self.message.get_content_maintype() == "multipart":
+            print("gmail_reciever: content maintype is multipart")
+          
             for content in self.message.walk():
                 if content.get_content_type() == "text/plain":
                     # Unfortunately get_payload with decode=True still returns bystestring.
-                    self.body = content.get_payload(decode=True)
-                    self.body = self.body.decode(encoding='UTF-8',errors='strict')
+                    self.body = content.get_payload(decode=True).decode(encoding='UTF-8',errors='replace')
                 elif content.get_content_type() == "text/html":
-                    self.html = content.get_payload(decode=True).decode(encoding='UTF-8',errors='strict')
+                    self.html = content.get_payload(decode=True).decode(encoding='UTF-8',errors='replace')
+      
         elif self.message.get_content_maintype() == "text":
-            if isinstance(self.body, str):
-                self.body = self.message.get_payload()
-            elif isinstance(self.body, bytes):
-                self.body = self.message.get_payload().decode(encoding='UTF-8',errors='strict')
+            print("gmail_reciever: content maintype is text")
+            self.body = self.message.get_payload(decode=True)
+            
+            if isinstance(self.body, bytes):
+                self.body = self.body.decode(encoding='UTF-8',errors='replace')
         
         self.sent_at = self.message['date']
         # self.sent_at = datetime.datetime.fromtimestamp(time.mktime(email.utils.parsedate_tz(self.message['date'])[:9]))
