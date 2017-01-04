@@ -153,10 +153,10 @@ class Message():
         
 
 
-        print(self.message.as_string())
+        # print(self.message.as_string())
 
         if self.message.get_content_maintype() == "multipart":
-            print("gmail_reciever: content maintype is multipart")
+            #print("gmail_reciever: content maintype is multipart")
           
             for content in self.message.walk():
                 if content.get_content_type() == "text/plain":
@@ -166,7 +166,7 @@ class Message():
                     self.html = content.get_payload(decode=True).decode(encoding='UTF-8',errors='replace')
       
         elif self.message.get_content_maintype() == "text":
-            print("gmail_reciever: content maintype is text")
+            #print("gmail_reciever: content maintype is text")
             self.body = self.message.get_payload(decode=True)
             
             if isinstance(self.body, bytes):
