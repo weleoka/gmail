@@ -139,8 +139,8 @@ class Message():
         raw_email = raw_message[1]
 
         # This makes it a byte string from a bytearray.
-        decoded_headers = decode_utf7(raw_headers)#.decode(encoding='UTF-8',errors='strict')
-        decoded_email = decode_utf7(raw_email)#decode(encoding='UTF-8',errors='strict')
+        decoded_headers = raw_headers.decode(encoding='UTF-8',errors='replace')
+        decoded_email = raw_email.decode(encoding='UTF-8',errors='replace')
 
         self.message = email.message_from_string(decoded_email)
         self.headers = self.parse_headers(self.message)
