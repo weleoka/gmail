@@ -21,6 +21,7 @@ class Message():
         self.subject = None
         self.body = None
         self.html = None
+        self.raw_email = None # The undecoded message bytestring
 
         self.to = None
         self.fr = None
@@ -136,11 +137,11 @@ class Message():
 
     def parse(self, raw_message):
         raw_headers = raw_message[0]
-        raw_email = raw_message[1]
+        self.raw_email = raw_message[1]
 
         # This makes it a byte string from a bytearray.
         decoded_headers = raw_headers.decode(encoding='UTF-8',errors='replace')
-        decoded_email = raw_email.decode(encoding='UTF-8',errors='replace')
+        decoded_email = self.raw_email.decode(encoding='UTF-8',errors='replace')
 
         self.message = email.message_from_string(decoded_email)
         self.headers = self.parse_headers(self.message)
@@ -150,23 +151,18 @@ class Message():
         self.delivered_to = self.message['delivered_to']
 
         self.subject = self.parse_subject(self.message['subject'])
-        
-
-
-        # print(self.message.as_string())
 
         if self.message.get_content_maintype() == "multipart":
-            #print("gmail_reciever: content maintype is multipart")
-          
+
             for content in self.message.walk():
+
                 if content.get_content_type() == "text/plain":
-                    # Unfortunately get_payload with decode=True still returns bystestring.
                     self.body = content.get_payload(decode=True).decode(encoding='UTF-8',errors='replace')
+                
                 elif content.get_content_type() == "text/html":
                     self.html = content.get_payload(decode=True).decode(encoding='UTF-8',errors='replace')
       
         elif self.message.get_content_maintype() == "text":
-            #print("gmail_reciever: content maintype is text")
             self.body = self.message.get_payload(decode=True)
             
             if isinstance(self.body, bytes):
@@ -240,7 +236,9 @@ class Attachment:
         # Filesize in kilobytes
         self.size = int(round(len(self.payload)/1000.0))
 
-    def save(self, path=None):
+    def save(self, path=None, name=None):
+        if name:
+            self.name = name
         if path is None:
             # Save as name of attachment if there is no path specified
             path = self.name
