@@ -21,7 +21,9 @@ class Message():
         self.subject = None
         self.body = None
         self.html = None
-        self.raw_email = None # The undecoded message bytestring
+        self.raw_headers = None # The undecoded message headers.
+        self.raw_message = None # The undecoded message bytestring.
+        self.decoded_headers = None # The imaplib message metadata headers.
 
         self.to = None
         self.fr = None
@@ -36,9 +38,9 @@ class Message():
         self.thread_id = None
         self.thread = []
         self.message_id = None
- 
+
         self.attachments = None
-        
+
 
 
     def is_read(self):
@@ -135,58 +137,57 @@ class Message():
         default_charset = ''
         return ''.join([t[0] + t[1] if t[1] else t[0] + default_charset for t in dh ])
 
+
     def parse(self, raw_message):
-        raw_headers = raw_message[0]
-        self.raw_email = raw_message[1]
+        self.raw_headers = raw_message[0]
+        # 49 (X-GM-THRID 1571527226466073498 X-GM-MSGID 1571527226466073498 X-GM-LABELS ("\\Important") UID 122 FLAGS () BODY[] {7088}
+        self.decoded_headers = self.raw_headers.decode()
+        self.raw_message = raw_message[1]
 
-        # This makes it a byte string from a bytearray.
-        decoded_headers = raw_headers.decode(encoding='UTF-8',errors='replace')
-        decoded_email = self.raw_email.decode(encoding='UTF-8',errors='replace')
-
-        self.message = email.message_from_string(decoded_email)
+        # This should return a message object, which we can then run get_payload on.
+        self.message = email.message_from_bytes(self.raw_message)
+        self.flags = self.parse_flags(self.raw_headers)
+        self.labels = self.parse_labels(self.decoded_headers)
         self.headers = self.parse_headers(self.message)
+        
+        self.to = self.headers['To']
+        self.fr = self.headers['From']
+        self.delivered_to = self.headers['Delivered-To']
+        self.sent_at = self.headers['Date']
+        # self.sent_at = datetime.datetime.fromtimestamp(time.mktime(email.utils.parsedate_tz(self.message['date'])[:9]))
+        self.subject = self.headers['Subject']
 
-        self.to = self.message['to']
-        self.fr = self.message['from']
-        self.delivered_to = self.message['delivered_to']
-
-        self.subject = self.parse_subject(self.message['subject'])
+        if re.search(r'X-GM-THRID (\d+)', self.decoded_headers):
+            self.thread_id = re.search(r'X-GM-THRID (\d+)', self.decoded_headers).groups(1)[0]
+        if re.search(r'X-GM-MSGID (\d+)', self.decoded_headers):
+            self.message_id = re.search(r'X-GM-MSGID (\d+)', self.decoded_headers).groups(1)[0]
 
         if self.message.get_content_maintype() == "multipart":
-
             for content in self.message.walk():
+                ctype = content.get_content_type()
+                cdispo = str(content.get('Content-Disposition'))
 
-                if content.get_content_type() == "text/plain":
-                    self.body = content.get_payload(decode=True).decode(encoding='UTF-8',errors='replace')
-                
-                elif content.get_content_type() == "text/html":
-                    self.html = content.get_payload(decode=True).decode(encoding='UTF-8',errors='replace')
-      
+                # skip any text/plain (txt) attachments
+                if ctype == 'text/plain' and 'attachment' not in cdispo:
+                    self.body = content.get_payload(decode=True)
+                    break
+    
+                elif ctype == "text/html":
+                    self.html = content.get_payload(decode=True)
+                    break
+
         elif self.message.get_content_maintype() == "text":
             self.body = self.message.get_payload(decode=True)
-            
-            if isinstance(self.body, bytes):
-                self.body = self.body.decode(encoding='UTF-8',errors='replace')
-        
-        self.sent_at = self.message['date']
-        # self.sent_at = datetime.datetime.fromtimestamp(time.mktime(email.utils.parsedate_tz(self.message['date'])[:9]))
 
-        self.flags = self.parse_flags(raw_headers)
-
-        self.labels = self.parse_labels(decoded_headers)
-
-        if re.search(r'X-GM-THRID (\d+)', decoded_headers):
-            self.thread_id = re.search(r'X-GM-THRID (\d+)', decoded_headers).groups(1)[0]
-        if re.search(r'X-GM-MSGID (\d+)', decoded_headers):
-            self.message_id = re.search(r'X-GM-MSGID (\d+)', decoded_headers).groups(1)[0]
-
-        
+        if isinstance(self.body, bytes):
+            self.body = self.body.decode()#self.body.decode(encoding='UTF-8',errors='replace')
+            print(self.body)
         # Parse attachments into attachment objects array for this message
         self.attachments = [
             Attachment(attachment) for attachment in self.message._payload
                 if not isinstance(attachment, str) and attachment.get('Content-Disposition') is not None
         ]
-        
+
 
     def fetch(self):
         if not self.message:
