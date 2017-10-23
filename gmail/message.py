@@ -180,13 +180,22 @@ class Message():
             self.body = self.message.get_payload(decode=True)
 
         if isinstance(self.body, bytes):
-            self.body = self.body.decode()#self.body.decode(encoding='UTF-8',errors='replace')
-            print(self.body)
+            self.body = self.body.decode()
+            #print(self.body)
+
         # Parse attachments into attachment objects array for this message
-        self.attachments = [
-            Attachment(attachment) for attachment in self.message._payload
-                if not isinstance(attachment, str) and attachment.get('Content-Disposition') is not None
-        ]
+        # self.attachments = [
+        #     Attachment(attachment) for attachment in self.message._payload
+        #         if not isinstance(attachment, str) and attachment.get('Content-Disposition') is not None
+        # ]
+        for message_part in self.message._payload:
+            if not isinstance(message_part, str):
+                content_disposition = message_part.get("Content-Disposition", None)
+                print(content_disposition)
+                if content_disposition:
+                    dispositions = content_disposition.strip().split(";")
+                    if bool(content_disposition and dispositions[0].lower() == "attachment"):
+                        self.attachments.append(Attachment(message_part))
 
 
     def fetch(self):
