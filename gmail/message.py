@@ -39,7 +39,7 @@ class Message():
         self.thread = []
         self.message_id = None
 
-        self.attachments = None
+        self.attachments = []
 
 
 
