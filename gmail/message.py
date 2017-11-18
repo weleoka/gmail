@@ -18,16 +18,16 @@ class Message():
         self.message = None
         self.headers = {}
 
-        self.subject = None
+        self.subject = str()
         self.body = None
-        self.html = None
+        self.html = str()
         self.raw_headers = None # The undecoded message headers.
         self.raw_message = None # The undecoded message bytestring.
         self.decoded_headers = None # The imaplib message metadata headers.
 
-        self.to = None
-        self.fr = None
-        self.cc = None
+        self.to = str()
+        self.fr = str()
+        self.cc = str()
         self.delivered_to = None
 
         self.sent_at = None
@@ -180,9 +180,21 @@ class Message():
             self.body = self.message.get_payload(decode=True)
 
         if isinstance(self.body, bytes):
-            self.body = self.body.decode()
-            #print(self.body)
+            # If MAIL software has not set Content-Transfer-Encoding:
+            try:
+                # Default decode utf-8
+                self.body = self.body.decode()
 
+            except UnicodeDecodeError:
+
+                try:
+                    print("Message is not UTF-8 encoded. Trying latin-1.")
+                    self.body = self.body.decode(encoding='latin-1')
+
+                except UnicodeDecodeError:
+                    print("Message not UTF-8 or latin-1 encoded. Fallback to UTF-8 errors='replace'")
+                    self.body = self.body.decode(errors='replace')
+        
         # Parse attachments into attachment objects array for this message
         # self.attachments = [
         #     Attachment(attachment) for attachment in self.message._payload
@@ -191,9 +203,10 @@ class Message():
         for message_part in self.message._payload:
             if not isinstance(message_part, str):
                 content_disposition = message_part.get("Content-Disposition", None)
-                print(content_disposition)
+            
                 if content_disposition:
                     dispositions = content_disposition.strip().split(";")
+
                     if bool(content_disposition and dispositions[0].lower() == "attachment"):
                         self.attachments.append(Attachment(message_part))
 
